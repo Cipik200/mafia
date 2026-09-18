@@ -318,7 +318,16 @@
 
         // Инициализация PeerJS
         function initPeer(customId = null) {
-            state.peer = customId ? new Peer(customId) : new Peer();
+           const peerOptions = {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' }
+                ]
+            }
+        };
+        state.peer = customId ? new Peer(customId, peerOptions) : new Peer(peerOptions);
 
             state.peer.on('open', async (id) => {
                 state.myId = id;
