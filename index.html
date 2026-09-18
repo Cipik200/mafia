@@ -4,321 +4,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мафия Онлайн - Игра с видеокамерами</title>
+    <title>Мафия Онлайн</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        mafia: {
-                            900: '#1a0505',
-                            800: '#2b0909',
-                            700: '#4a0d0d',
-                            600: '#7f1d1d',
-                            500: '#991b1b',
-                            400: '#dc2626',
-                            accent: '#ff2a2a',
-                        }
-                    },
-                    boxShadow: {
-                        'neon-red': '0 0 15px rgba(220, 38, 38, 0.5), 0 0 30px rgba(220, 38, 38, 0.2)',
-                        'neon-gold': '0 0 15px rgba(234, 179, 8, 0.5)',
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@300;400;600;700&display=swap');
-        
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .font-cinzel {
-            font-family: 'Cinzel', serif;
-        }
-        /* Стилизация скроллбара */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #4a0d0d;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #7f1d1d;
-        }
-        
-        .night-overlay {
-            background: radial-gradient(circle, rgba(15, 23, 42, 0.85) 0%, rgba(2, 6, 23, 0.98) 100%);
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .font-cinzel { font-family: 'Cinzel', serif; }
     </style>
 </head>
-<body class="h-full flex flex-col overflow-x-hidden selection:bg-mafia-500 selection:text-white">
+<body class="h-full flex flex-col bg-slate-950 text-slate-100 overflow-x-hidden">
 
-    <!-- Модальное окно роли -->
-    <div id="roleModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-all">
-        <div class="bg-gradient-to-b from-slate-900 to-mafia-900 border-2 border-mafia-500/50 rounded-2xl p-6 max-w-sm w-full text-center shadow-neon-red transform transition-all scale-100">
-            <div id="roleCardHeader" class="text-xs uppercase tracking-widest text-slate-400 mb-1">Ваша Важная Роль</div>
-            <h2 id="roleCardTitle" class="text-3xl font-cinzel font-bold text-mafia-accent mb-3">...</h2>
-            <div id="roleCardIcon" class="text-6xl my-4 text-mafia-400">
-                <i class="fa-solid fa-user-secret"></i>
-            </div>
-            <p id="roleCardDesc" class="text-sm text-slate-300 mb-6 min-h-[60px] leading-relaxed"></p>
-            <button onclick="closeRoleModal()" class="w-full py-3 bg-gradient-to-r from-mafia-600 to-mafia-500 hover:from-mafia-500 hover:to-mafia-400 text-white font-semibold rounded-xl shadow-lg transition duration-200">
-                Я понял свою роль
+    <!-- ЛОББИ -->
+    <div id="lobbyScreen" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center shadow-2xl">
+            <h1 class="text-3xl font-cinzel font-bold text-red-500 mb-2">MAFIA ONLINE</h1>
+            <p class="text-xs text-slate-400 mb-6">Создайте комнату или подключитесь по коду</p>
+            
+            <input type="text" id="playerNameInput" placeholder="Ваше имя..." class="w-full px-4 py-3 mb-4 bg-slate-950 border border-slate-800 rounded-xl outline-none text-sm text-center focus:border-red-500">
+            
+            <button onclick="createRoom()" class="w-full py-3 bg-red-600 hover:bg-red-500 font-semibold rounded-xl transition mb-3">
+                Создать комнату
             </button>
+            
+            <div class="flex gap-2">
+                <input type="text" id="roomIdInput" placeholder="Код комнаты..." class="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl outline-none text-sm text-center uppercase font-mono">
+                <button onclick="joinRoom()" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-semibold transition">
+                    Войти
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Хедер сайта -->
-    <header class="bg-slate-900/80 border-b border-mafia-900/60 backdrop-blur sticky top-0 z-30 px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-mafia-500 to-red-950 flex items-center justify-center shadow-neon-red border border-mafia-400/30">
-                <i class="fa-solid fa-mask text-white text-xl"></i>
-            </div>
-            <div>
-                <h1 class="font-cinzel text-xl font-bold tracking-wider text-white flex items-center gap-2">
-                    MAFIA <span class="text-xs font-sans px-2 py-0.5 rounded bg-mafia-600/50 text-red-300 border border-mafia-500/30">ONLINE</span>
-                </h1>
-                <p class="text-xs text-slate-400 hidden sm:block">Интерактивный детектив с видеозвонками</p>
-            </div>
-        </div>
-
-        <!-- Текущая фаза / Индикаторы -->
-        <div id="gamePhaseBadge" class="hidden flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800/80 border border-slate-700">
-            <span id="phaseIcon" class="text-amber-400"><i class="fa-solid fa-sun"></i></span>
-            <span id="phaseText" class="font-semibold text-sm tracking-wide uppercase text-slate-200">День</span>
-            <span id="timerText" class="ml-2 font-mono text-sm px-2 py-0.5 rounded bg-slate-900 text-amber-400 border border-amber-500/30">01:00</span>
-        </div>
-
-        <!-- Кнопки управления комнатой -->
-        <div class="flex items-center gap-2">
-            <button id="copyLinkBtn" onclick="copyRoomLink()" class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition">
-                <i class="fa-solid fa-link"></i> <span id="copyBtnText">Ссылка на комнату</span>
-            </button>
-            <div id="playerCountBadge" class="hidden px-3 py-1.5 bg-mafia-900/60 border border-mafia-700/50 rounded-lg text-xs font-medium text-red-200">
-                <i class="fa-solid fa-users mr-1"></i> <span id="playerCount">1</span>
-            </div>
+    <!-- ИГРОВОЙ ЭКРАН -->
+    <header class="bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between">
+        <h1 class="font-cinzel text-xl font-bold text-red-500">MAFIA ONLINE</h1>
+        <div class="flex gap-2">
+            <button id="copyLinkBtn" onclick="copyLink()" class="hidden px-3 py-1.5 bg-slate-800 text-xs rounded-lg border border-slate-700">Скопировать ссылку</button>
+            <div id="playerCount" class="px-3 py-1.5 bg-red-950/50 text-red-400 border border-red-900/50 text-xs rounded-lg font-mono">Игроков: 1</div>
         </div>
     </header>
 
-    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
-
-        <!-- Экран создания/входа в комнату (Лобби) -->
-        <div id="lobbyScreen" class="absolute inset-0 z-20 bg-slate-950 flex items-center justify-center p-4">
-            <div class="max-w-md w-full bg-slate-900/90 border border-mafia-800/80 rounded-2xl p-6 sm:p-8 shadow-neon-red backdrop-blur">
-                <div class="text-center mb-6">
-                    <div class="inline-flex p-4 rounded-full bg-mafia-900/50 border border-mafia-600/30 text-mafia-accent text-3xl mb-3">
-                        <i class="fa-solid fa-user-ninja"></i>
-                    </div>
-                    <h2 class="text-2xl font-cinzel font-bold text-white">Добро пожаловать</h2>
-                    <p class="text-sm text-slate-400 mt-1">Создайте комнату или подключитесь к друзьям</p>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs uppercase font-semibold text-slate-400 mb-1">Ваш никнейм</label>
-                        <input type="text" id="playerNameInput" placeholder="Введите ваше имя..." class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-mafia-500 focus:ring-1 focus:ring-mafia-500 outline-none text-slate-100 placeholder-slate-600 transition">
-                    </div>
-
-                    <div class="pt-2 flex flex-col gap-3">
-                        <button onclick="createRoom()" class="w-full py-3.5 bg-gradient-to-r from-mafia-600 to-mafia-500 hover:from-mafia-500 hover:to-mafia-400 text-white font-semibold rounded-xl shadow-lg shadow-mafia-900/50 transition flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-plus-circle"></i> Создать новую комнату
-                        </button>
-                        
-                        <div class="relative flex py-1 items-center">
-                            <div class="flex-grow border-t border-slate-800"></div>
-                            <span class="flex-shrink mx-3 text-xs text-slate-500 uppercase">или войти по коду</span>
-                            <div class="flex-grow border-t border-slate-800"></div>
-                        </div>
-
-                        <div class="flex gap-2">
-                            <input type="text" id="roomIdInput" placeholder="Код комнаты..." class="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-mafia-500 focus:ring-1 focus:ring-mafia-500 outline-none text-slate-100 placeholder-slate-600 text-center uppercase tracking-wider font-mono transition">
-                            <button onclick="joinRoom()" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold rounded-xl transition">
-                                Войти
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Игровая зона: Сетка видеопотоков -->
-        <div class="flex-1 p-4 overflow-y-auto flex flex-col justify-between relative bg-slate-950">
-            
-            <!-- Оверлей ночи (затемнение) -->
-            <div id="nightOverlay" class="hidden absolute inset-0 z-10 night-overlay flex flex-col items-center justify-center p-6 text-center pointer-events-none transition-all duration-700">
-                <i class="fa-solid fa-moon text-6xl text-indigo-400 mb-4 animate-pulse"></i>
-                <h2 class="text-3xl font-cinzel font-bold text-slate-100">Город засыпает...</h2>
-                <p id="nightOverlayText" class="text-sm text-slate-400 max-w-md mt-2">Мирные жители спят. Просыпается мафия и активные роли.</p>
-            </div>
-
-            <!-- Сетка видео пользователей -->
-            <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
-                <!-- Каточки игроков будут добавляться динамически JS -->
-            </div>
-
-            <!-- Панель управления видео/звуком и ведущего -->
-            <div class="mt-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-xl backdrop-blur relative z-20">
-                
-                <!-- Кнопки управления устройствами -->
-                <div class="flex items-center gap-2">
-                    <button id="toggleMicBtn" onclick="toggleMic()" class="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center transition" title="Включить/Выключить микрофон">
-                        <i class="fa-solid fa-microphone"></i>
-                    </button>
-                    <button id="toggleCamBtn" onclick="toggleCam()" class="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center transition" title="Включить/Выключить камеру">
-                        <i class="fa-solid fa-video"></i>
-                    </button>
-                    <button id="viewRoleBtn" onclick="showRoleModal()" class="hidden px-3 h-11 rounded-xl bg-mafia-900/80 hover:bg-mafia-800 text-mafia-300 border border-mafia-700/50 text-xs font-semibold flex items-center gap-2 transition">
-                        <i class="fa-solid fa-id-card text-base"></i> Моя роль
-                    </button>
-                </div>
-
-                <!-- Панель действий Ведущего (Host Control) -->
-                <div id="hostControls" class="hidden flex flex-wrap items-center gap-2">
-                    <button onclick="startGame()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded-xl shadow transition flex items-center gap-2">
-                        <i class="fa-solid fa-play"></i> Старт игры
-                    </button>
-                    <button onclick="nextPhase()" class="px-4 py-2.5 bg-mafia-600 hover:bg-mafia-500 text-white font-medium text-xs rounded-xl shadow transition flex items-center gap-2">
-                        <i class="fa-solid fa-forward"></i> Сменить фазу
-                    </button>
-                    <button onclick="resetGame()" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white font-medium text-xs rounded-xl border border-slate-700 transition" title="Сбросить игру">
-                        <i class="fa-solid fa-rotate-right"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Правая панель: Чат и Логи -->
-        <div class="w-full lg:w-80 bg-slate-900/95 border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col h-72 lg:h-auto">
-            <!-- Вкладки (Чат / Лог) -->
-            <div class="flex border-b border-slate-800">
-                <button id="tabChatBtn" onclick="switchTab('chat')" class="flex-1 py-3 text-xs font-semibold uppercase tracking-wider text-mafia-accent border-b-2 border-mafia-500 bg-slate-800/40">
-                    <i class="fa-solid fa-comments mr-1"></i> Чат
-                </button>
-                <button id="tabLogBtn" onclick="switchTab('log')" class="flex-1 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-200 border-b-2 border-transparent">
-                    <i class="fa-solid fa-scroll mr-1"></i> Логи игры
-                </button>
-            </div>
-
-            <!-- Содержимое чата -->
-            <div id="chatSection" class="flex-1 flex flex-col justify-between overflow-hidden p-3">
-                <div id="chatMessages" class="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
-                    <div class="text-slate-500 text-center my-2 italic">Добро пожаловать в игровой чат!</div>
-                </div>
-                <form id="chatForm" onsubmit="sendChatMessage(event)" class="mt-3 flex gap-2">
-                    <input type="text" id="chatInput" placeholder="Сообщение..." class="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg focus:border-mafia-500 outline-none text-xs text-slate-200">
-                    <button type="submit" class="px-3 py-2 bg-mafia-600 hover:bg-mafia-500 text-white rounded-lg text-xs transition">
-                        <i class="fa-solid fa-paper-plane"></i>
-                    </button>
-                </form>
-            </div>
-
-            <!-- Содержимое логов -->
-            <div id="logSection" class="hidden flex-1 overflow-y-auto p-3 text-xs space-y-2 text-slate-300">
-                <div class="p-2 rounded bg-slate-950 border border-slate-800 text-slate-400">
-                    <i class="fa-solid fa-info-circle text-amber-400 mr-1"></i> Лог событий отображает действия и фазы игры.
-                </div>
-            </div>
-        </div>
+    <main class="flex-1 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="videoGrid">
+        <!-- Видео участников -->
     </main>
 
     <script>
-        // Игровое состояние
-        const state = {
-            peer: null,
-            myId: null,
-            myStream: null,
-            roomId: null,
-            playerName: 'Игрок',
-            isHost: false,
-            micEnabled: true,
-            camEnabled: true,
-            players: {}, // id -> { name, peer, stream, role, alive, votes }
-            connections: {}, // peerId -> DataConnection
-            mediaCalls: {}, // peerId -> MediaConnection
-            phase: 'LOBBY', // LOBBY, DAY, VOTING, NIGHT
-            myRole: null,
-            timer: null,
-            timeLeft: 60,
-            votedFor: null
-        };
-
-        const ROLES = {
-            MAFIA: { name: 'Мафия', desc: 'Устраняйте мирных жителей каждую ночь. Не дайте себя раскрыть днём!', icon: 'fa-user-ninja', color: 'text-red-500' },
-            CITIZEN: { name: 'Мирный житель', desc: 'Находите мафию с помощью логики и голосуйте днём.', icon: 'fa-user-tie', color: 'text-blue-400' },
-            SHERIFF: { name: 'Шериф', desc: 'Каждую ночь вы можете проверить одного игрока и узнать его роль.', icon: 'fa-shield-halved', color: 'text-amber-400' },
-            DOCTOR: { name: 'Доктор', desc: 'Каждую ночь вы можете спасти одного игрока от нападения.', icon: 'fa-user-doctor', color: 'text-emerald-400' }
-        };
-
-        // Инициализация при загрузке
-        window.addEventListener('load', () => {
-            // Проверка параметров URL (ссылка-приглашение)
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomParam = urlParams.get('room');
-            if (roomParam) {
-                document.getElementById('roomIdInput').value = roomParam;
-            }
-        });
-
-        // Получение локального медиапотока
-        async function initLocalStream() {
-            try {
-                state.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                renderLocalVideo();
-            } catch (err) {
-                console.warn('Ошибка доступа к камере/микрофону:', err);
-                // Запасной вариант - пустой/аудио поток если видео недоступно
-                try {
-                    state.myStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-                    renderLocalVideo();
-                } catch (e) {
-                    addLog('Камера и микрофон недоступны.');
-                }
-            }
-        }
-
-        function renderLocalVideo() {
-            addPlayerCard(state.myId, state.playerName, state.myStream, true);
-        }
-
-        // Создание комнаты (Хост)
-        function createRoom() {
-            const nameInput = document.getElementById('playerNameInput').value.trim();
-            if (!nameInput) return alert('Пожалуйста, введите ваше имя!');
-            
-            state.playerName = nameInput;
-            state.isHost = true;
-            state.roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-            initPeer(state.roomId);
-        }
-
-        // Вход в комнату
-        function joinRoom() {
-            const nameInput = document.getElementById('playerNameInput').value.trim();
-            const roomInput = document.getElementById('roomIdInput').value.trim().toUpperCase();
-            
-            if (!nameInput) return alert('Введите ваше имя!');
-            if (!roomInput) return alert('Введите код комнаты!');
-
-            state.playerName = nameInput;
-            state.isHost = false;
-            state.roomId = roomInput;
-
-            initPeer();
-        }
-
-        // Инициализация PeerJS
-        function initPeer(customId = null) {
-           const peerOptions = {
+        const PEER_CONFIG = {
             config: {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
@@ -327,474 +60,128 @@
                 ]
             }
         };
-        state.peer = customId ? new Peer(customId, peerOptions) : new Peer(peerOptions);
 
-            state.peer.on('open', async (id) => {
+        const state = {
+            peer: null,
+            myId: null,
+            roomId: null,
+            playerName: 'Игрок',
+            stream: null,
+            connections: {}
+        };
+
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const room = params.get('room');
+            if (room) document.getElementById('roomIdInput').value = room;
+        });
+
+        async function initStream() {
+            try {
+                state.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            } catch (e) {
+                console.warn('Камера недоступна:', e);
+            }
+        }
+
+        async function createRoom() {
+            const name = document.getElementById('playerNameInput').value.trim();
+            if (!name) return alert('Введите имя!');
+            state.playerName = name;
+            state.roomId = Math.random().toString(36).substring(2, 8).toLowerCase();
+            
+            await initStream();
+            initPeer(state.roomId);
+        }
+
+        async function joinRoom() {
+            const name = document.getElementById('playerNameInput').value.trim();
+            const room = document.getElementById('roomIdInput').value.trim().toLowerCase();
+            if (!name || !room) return alert('Введите имя и код комнаты!');
+            state.playerName = name;
+            state.roomId = room;
+
+            await initStream();
+            initPeer();
+        }
+
+        function initPeer(customId = null) {
+            state.peer = customId ? new Peer(customId, PEER_CONFIG) : new Peer(PEER_CONFIG);
+
+            state.peer.on('open', (id) => {
                 state.myId = id;
                 document.getElementById('lobbyScreen').classList.add('hidden');
-                document.getElementById('playerCountBadge').classList.remove('hidden');
                 document.getElementById('copyLinkBtn').classList.remove('hidden');
+                
+                addVideoCard(state.myId, state.playerName + ' (Вы)', state.stream, true);
 
-                if (state.isHost) {
-                    document.getElementById('hostControls').classList.remove('hidden');
-                    addLog(`Комната создана! Код: <b>${state.roomId}</b>`);
-                } else {
-                    addLog(`Подключение к комнате <b>${state.roomId}</b>...`);
-                    // Подключаемся к хосту
-                    connectToPeer(state.roomId);
+                if (!customId) {
+                    connectToHost(state.roomId);
                 }
-
-                await initLocalStream();
-                
-                state.players[state.myId] = {
-                    name: state.playerName,
-                    role: null,
-                    alive: true,
-                    isHost: state.isHost
-                };
-                
-                updatePlayerCount();
             });
 
-            // Входящее текстовое/данные соединение
             state.peer.on('connection', (conn) => {
-                setupConnection(conn);
+                conn.on('data', (data) => {
+                    if (data.type === 'JOIN') {
+                        state.connections[conn.peer] = conn;
+                        updateCount();
+                        if (state.stream) {
+                            const call = state.peer.call(conn.peer, state.stream);
+                            call.on('stream', (remoteStream) => addVideoCard(conn.peer, data.name, remoteStream));
+                        }
+                    }
+                });
             });
 
-            // Входящий медиавызов (видеопоток)
             state.peer.on('call', (call) => {
-                call.answer(state.myStream);
+                call.answer(state.stream);
                 call.on('stream', (remoteStream) => {
-                    addPlayerCard(call.peer, state.players[call.peer]?.name || 'Игрок', remoteStream);
+                    addVideoCard(call.peer, 'Участник', remoteStream);
                 });
-                state.mediaCalls[call.peer] = call;
             });
 
             state.peer.on('error', (err) => {
-                console.error('PeerJS error:', err);
-                alert('Ошибка подключения к серверу звонков: ' + err.type);
-            });
-        }
-
-        // Подключение к существующему пиру
-        function connectToPeer(peerId) {
-            const conn = state.peer.connect(peerId, {
-                metadata: { name: state.playerName }
-            });
-            setupConnection(conn);
-
-            // Совершаем медиавызов
-            if (state.myStream) {
-                const call = state.peer.call(peerId, state.myStream);
-                call.on('stream', (remoteStream) => {
-                    addPlayerCard(peerId, state.players[peerId]?.name || 'Игрок', remoteStream);
-                });
-                state.mediaCalls[peerId] = call;
-            }
-        }
-
-        // Настройка обработки данных соединения
-        function setupConnection(conn) {
-            state.connections[conn.peer] = conn;
-
-            conn.on('open', () => {
-                // Передаем данные о себе
-                conn.send({
-                    type: 'HANDSHAKE',
-                    name: state.playerName,
-                    isHost: state.isHost
-                });
-            });
-
-            conn.on('data', (data) => {
-                handleNetworkData(conn.peer, data);
-            });
-
-            conn.on('close', () => {
-                removePlayerCard(conn.peer);
-                delete state.players[conn.peer];
-                delete state.connections[conn.peer];
-                updatePlayerCount();
-                addLog(`Игрок отключился.`);
-            });
-        }
-
-        // Обработка сообщений из сети
-        function handleNetworkData(senderId, data) {
-            switch (data.type) {
-                case 'HANDSHAKE':
-                    state.players[senderId] = {
-                        name: data.name,
-                        role: null,
-                        alive: true,
-                        isHost: data.isHost
-                    };
-                    updatePlayerCount();
-                    addLog(`Игрок <b>${data.name}</b> присоединился!`);
-                    
-                    // Если я хост, звоним новому игроку
-                    if (state.isHost && state.myStream) {
-                        const call = state.peer.call(senderId, state.myStream);
-                        call.on('stream', (remoteStream) => {
-                            addPlayerCard(senderId, data.name, remoteStream);
-                        });
-                        state.mediaCalls[senderId] = call;
-                        broadcastGameState();
-                    }
-                    break;
-
-                case 'GAME_STATE':
-                    // Хост рассылает состояние
-                    syncGameState(data.state);
-                    break;
-
-                case 'ASSIGN_ROLE':
-                    state.myRole = data.role;
-                    document.getElementById('viewRoleBtn').classList.remove('hidden');
-                    showRoleModal();
-                    addLog(`Вы получили роль: <b>${ROLES[data.role].name}</b>`);
-                    break;
-
-                case 'CHAT':
-                    renderChatMessage(data.sender, data.text);
-                    break;
-
-                case 'VOTE':
-                    handleVoteReceived(data.from, data.target);
-                    break;
-            }
-        }
-
-        // Добавление карточки видео для игрока
-        function addPlayerCard(peerId, name, stream, isSelf = false) {
-            let card = document.getElementById(`player-card-${peerId}`);
-            if (!card) {
-                const grid = document.getElementById('videoGrid');
-                card = document.createElement('div');
-                card.id = `player-card-${peerId}`;
-                card.className = "relative bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col justify-between group min-h-[180px] shadow-lg transition duration-300";
-                
-                card.innerHTML = `
-                    <!-- Видео контейнер -->
-                    <video id="video-${peerId}" autoplay playsinline ${isSelf ? 'muted' : ''} class="absolute inset-0 w-full h-full object-cover"></video>
-                    
-                    <!-- Оверлей информации -->
-                    <div class="relative z-10 p-3 flex justify-between items-start bg-gradient-to-b from-black/70 to-transparent">
-                        <span class="px-2.5 py-1 rounded-lg bg-slate-900/80 backdrop-blur border border-slate-700/50 text-xs font-semibold text-white flex items-center gap-1.5">
-                            ${isSelf ? '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Вы: ' : ''} ${name}
-                        </span>
-                        <div id="status-icons-${peerId}" class="flex gap-1">
-                            <span class="w-6 h-6 rounded-md bg-slate-900/80 text-slate-300 text-xs flex items-center justify-center border border-slate-700"><i class="fa-solid fa-microphone"></i></span>
-                        </div>
-                    </div>
-
-                    <!-- Нижняя панель действий (голосование) -->
-                    <div class="relative z-10 p-3 flex justify-between items-end bg-gradient-to-t from-black/80 to-transparent">
-                        <div id="role-badge-${peerId}" class="hidden text-xs font-bold px-2 py-0.5 rounded bg-mafia-900 text-mafia-300 border border-mafia-700"></div>
-                        <button id="vote-btn-${peerId}" onclick="castVote('${peerId}')" class="hidden ml-auto px-3 py-1 bg-mafia-600 hover:bg-mafia-500 text-white text-xs font-semibold rounded-lg shadow-md transition">
-                            Голосовать
-                        </button>
-                    </div>
-
-                    <!-- Индикатор смерти/выбывания -->
-                    <div id="dead-overlay-${peerId}" class="hidden absolute inset-0 bg-slate-950/90 z-20 flex flex-col items-center justify-center text-red-500 font-bold font-cinzel text-xl">
-                        <i class="fa-solid fa-skull text-4xl mb-2"></i>
-                        ВЫБЫЛ
-                    </div>
-                `;
-                grid.appendChild(card);
-            }
-
-            const videoElem = document.getElementById(`video-${peerId}`);
-            if (stream && videoElem.srcObject !== stream) {
-                videoElem.srcObject = stream;
-            }
-        }
-
-        function removePlayerCard(peerId) {
-            const card = document.getElementById(`player-card-${peerId}`);
-            if (card) card.remove();
-        }
-
-        // Переключение микрофона и камеры
-        function toggleMic() {
-            if (!state.myStream) return;
-            const audioTrack = state.myStream.getAudioTracks()[0];
-            if (audioTrack) {
-                state.micEnabled = !state.micEnabled;
-                audioTrack.enabled = state.micEnabled;
-                const btn = document.getElementById('toggleMicBtn');
-                btn.innerHTML = state.micEnabled ? '<i class="fa-solid fa-microphone"></i>' : '<i class="fa-solid fa-microphone-slash text-red-400"></i>';
-            }
-        }
-
-        function toggleCam() {
-            if (!state.myStream) return;
-            const videoTrack = state.myStream.getVideoTracks()[0];
-            if (videoTrack) {
-                state.camEnabled = !state.camEnabled;
-                videoTrack.enabled = state.camEnabled;
-                const btn = document.getElementById('toggleCamBtn');
-                btn.innerHTML = state.camEnabled ? '<i class="fa-solid fa-video"></i>' : '<i class="fa-solid fa-video-slash text-red-400"></i>';
-            }
-        }
-
-        // Запуск игры (Хост)
-        function startGame() {
-            const playerIds = Object.keys(state.players);
-            if (playerIds.length < 3) {
-                if (!confirm('Для полноценной игры рекомендуется от 4 человек. Продолжить в демо-режиме?')) return;
-            }
-
-            // Распределение ролей
-            const shuffled = [...playerIds].sort(() => 0.5 - Math.random());
-            const rolesKeys = [ROLES.MAFIA, ROLES.SHERIFF, ROLES.DOCTOR, ROLES.CITIZEN];
-
-            shuffled.forEach((id, idx) => {
-                let roleKey = 'CITIZEN';
-                if (idx === 0) roleKey = 'MAFIA';
-                else if (idx === 1 && playerIds.length >= 4) roleKey = 'SHERIFF';
-                else if (idx === 2 && playerIds.length >= 5) roleKey = 'DOCTOR';
-
-                state.players[id].role = roleKey;
-
-                if (id === state.myId) {
-                    state.myRole = roleKey;
-                    document.getElementById('viewRoleBtn').classList.remove('hidden');
-                    showRoleModal();
-                } else if (state.connections[id]) {
-                    state.connections[id].send({
-                        type: 'ASSIGN_ROLE',
-                        role: roleKey
-                    });
-                }
-            });
-
-            addLog('<b>Игра началась! Роли успешно распределены.</b>');
-            setPhase('DAY');
-        }
-
-        // Смена фазы
-        function setPhase(newPhase) {
-            state.phase = newPhase;
-            document.getElementById('gamePhaseBadge').classList.remove('hidden');
-
-            const phaseText = document.getElementById('phaseText');
-            const phaseIcon = document.getElementById('phaseIcon');
-            const nightOverlay = document.getElementById('nightOverlay');
-
-            if (newPhase === 'DAY') {
-                phaseText.innerText = 'День';
-                phaseIcon.innerHTML = '<i class="fa-solid fa-sun text-amber-400"></i>';
-                nightOverlay.classList.add('hidden');
-                addLog('<b>Наступил День.</b> Обсудите события и вычислите Мафию.');
-                startTimer(60);
-                hideVotingButtons();
-            } else if (newPhase === 'VOTING') {
-                phaseText.innerText = 'Голосование';
-                phaseIcon.innerHTML = '<i class="fa-solid fa-check-to-slot text-red-400"></i>';
-                nightOverlay.classList.add('hidden');
-                addLog('<b>Началось голосование!</b> Выберите подозреваемого.');
-                startTimer(30);
-                showVotingButtons();
-            } else if (newPhase === 'NIGHT') {
-                phaseText.innerText = 'Ночь';
-                phaseIcon.innerHTML = '<i class="fa-solid fa-moon text-indigo-400"></i>';
-                
-                // Экраны скрываются для всех, кроме Мафии или Хоста
-                if (state.myRole !== 'MAFIA' && !state.isHost) {
-                    nightOverlay.classList.remove('hidden');
+                if (err.type === 'peer-unavailable') {
+                    alert('Комната с таким кодом не найдена! Убедитесь, что создатель комнаты сейчас на сайте.');
                 } else {
-                    nightOverlay.classList.add('hidden');
-                }
-                
-                addLog('<b>Наступила Ночь.</b> Город засыпает...');
-                startTimer(45);
-                hideVotingButtons();
-            }
-
-            if (state.isHost) broadcastGameState();
-        }
-
-        function nextPhase() {
-            if (state.phase === 'DAY') setPhase('VOTING');
-            else if (state.phase === 'VOTING') setPhase('NIGHT');
-            else setPhase('DAY');
-        }
-
-        // Голосование
-        function showVotingButtons() {
-            Object.keys(state.players).forEach(id => {
-                if (id !== state.myId) {
-                    const btn = document.getElementById(`vote-btn-${id}`);
-                    if (btn) btn.classList.remove('hidden');
+                    alert('Ошибка связи: ' + err.type);
                 }
             });
         }
 
-        function hideVotingButtons() {
-            document.querySelectorAll('[id^="vote-btn-"]').forEach(btn => btn.classList.add('hidden'));
-        }
-
-        function castVote(targetId) {
-            if (state.votedFor) return alert('Вы уже проголосовали в этом раунде!');
-            state.votedFor = targetId;
-            addLog(`Вы проголосовали против <b>${state.players[targetId]?.name}</b>`);
-
-            if (state.isHost) {
-                handleVoteReceived(state.myId, targetId);
-            } else if (state.connections[state.roomId]) {
-                state.connections[state.roomId].send({
-                    type: 'VOTE',
-                    from: state.myId,
-                    target: targetId
-                });
-            }
-        }
-
-        function handleVoteReceived(fromId, targetId) {
-            if (!state.players[targetId].votes) state.players[targetId].votes = 0;
-            state.players[targetId].votes++;
-
-            addLog(`Игрок проголосовал против <b>${state.players[targetId].name}</b>`);
-        }
-
-        // Таймер фазы
-        function startTimer(seconds) {
-            clearInterval(state.timer);
-            state.timeLeft = seconds;
-            updateTimerDisplay();
-
-            state.timer = setInterval(() => {
-                state.timeLeft--;
-                updateTimerDisplay();
-                if (state.timeLeft <= 0) {
-                    clearInterval(state.timer);
-                    if (state.isHost) nextPhase();
-                }
-            }, 1000);
-        }
-
-        function updateTimerDisplay() {
-            const mins = String(Math.floor(state.timeLeft / 60)).padStart(2, '0');
-            const secs = String(state.timeLeft % 60).padStart(2, '0');
-            document.getElementById('timerText').innerText = `${mins}:${secs}`;
-        }
-
-        // Показ роли в модальном окне
-        function showRoleModal() {
-            if (!state.myRole) return;
-            const roleData = ROLES[state.myRole];
-            document.getElementById('roleCardTitle').innerText = roleData.name;
-            document.getElementById('roleCardDesc').innerText = roleData.desc;
-            document.getElementById('roleCardIcon').className = `text-6xl my-4 ${roleData.color}`;
-            document.getElementById('roleModal').classList.remove('hidden');
-        }
-
-        function closeRoleModal() {
-            document.getElementById('roleModal').classList.add('hidden');
-        }
-
-        // Чат
-        function sendChatMessage(e) {
-            e.preventDefault();
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if (!text) return;
-
-            renderChatMessage('Вы', text);
-
-            // Отправка участникам
-            broadcast({ type: 'CHAT', sender: state.playerName, text });
-
-            input.value = '';
-        }
-
-        function renderChatMessage(sender, text) {
-            const container = document.getElementById('chatMessages');
-            const msg = document.createElement('div');
-            msg.className = "bg-slate-900/80 border border-slate-800 p-2 rounded-lg";
-            msg.innerHTML = `<span class="font-bold text-mafia-accent">${sender}:</span> <span class="text-slate-200">${escapeHtml(text)}</span>`;
-            container.appendChild(msg);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function addLog(htmlText) {
-            const logContainer = document.getElementById('logSection');
-            const item = document.createElement('div');
-            item.className = "p-2 rounded bg-slate-900/60 border border-slate-800 text-xs";
-            item.innerHTML = `<span class="text-slate-500 font-mono">[${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}]</span> ${htmlText}`;
-            logContainer.prepend(item);
-        }
-
-        function switchTab(tab) {
-            const chatSec = document.getElementById('chatSection');
-            const logSec = document.getElementById('logSection');
-            const tabChatBtn = document.getElementById('tabChatBtn');
-            const tabLogBtn = document.getElementById('tabLogBtn');
-
-            if (tab === 'chat') {
-                chatSec.classList.remove('hidden');
-                logSec.classList.add('hidden');
-                tabChatBtn.className = "flex-1 py-3 text-xs font-semibold uppercase tracking-wider text-mafia-accent border-b-2 border-mafia-500 bg-slate-800/40";
-                tabLogBtn.className = "flex-1 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-200 border-b-2 border-transparent";
-            } else {
-                chatSec.classList.add('hidden');
-                logSec.classList.remove('hidden');
-                tabLogBtn.className = "flex-1 py-3 text-xs font-semibold uppercase tracking-wider text-mafia-accent border-b-2 border-mafia-500 bg-slate-800/40";
-                tabChatBtn.className = "flex-1 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-200 border-b-2 border-transparent";
-            }
-        }
-
-        // Вспомогательные функции
-        function broadcast(data) {
-            Object.values(state.connections).forEach(conn => {
-                if (conn.open) conn.send(data);
+        function connectToHost(hostId) {
+            const conn = state.peer.connect(hostId);
+            conn.on('open', () => {
+                conn.send({ type: 'JOIN', name: state.playerName });
             });
         }
 
-        function broadcastGameState() {
-            broadcast({
-                type: 'GAME_STATE',
-                state: {
-                    phase: state.phase,
-                    players: state.players
-                }
-            });
+        function addVideoCard(id, name, stream, isSelf = false) {
+            if (document.getElementById(`card-${id}`)) return;
+            const grid = document.getElementById('videoGrid');
+            const card = document.createElement('div');
+            card.id = `card-${id}`;
+            card.className = 'relative bg-slate-900 border border-slate-800 rounded-xl overflow-hidden aspect-video flex items-center justify-center';
+            card.innerHTML = `
+                <video id="vid-${id}" autoplay playsinline ${isSelf ? 'muted' : ''} class="w-full h-full object-cover"></video>
+                <div class="absolute bottom-2 left-2 bg-slate-950/80 text-xs px-2 py-1 rounded border border-slate-800">${name}</div>
+            `;
+            grid.appendChild(card);
+            
+            const vid = document.getElementById(`vid-${id}`);
+            if (stream) vid.srcObject = stream;
+            updateCount();
         }
 
-        function syncGameState(newState) {
-            state.phase = newState.phase;
-            state.players = newState.players;
-            updatePlayerCount();
+        function updateCount() {
+            const count = document.querySelectorAll('#videoGrid > div').length;
+            document.getElementById('playerCount').innerText = `Игроков: ${count}`;
         }
 
-        function updatePlayerCount() {
-            const count = Object.keys(state.players).length;
-            document.getElementById('playerCount').innerText = count;
-        }
-
-        function copyRoomLink() {
+        function copyLink() {
             const url = `${window.location.origin}${window.location.pathname}?room=${state.roomId}`;
             navigator.clipboard.writeText(url);
-            const btnText = document.getElementById('copyBtnText');
-            btnText.innerText = "Скопировано!";
-            setTimeout(() => btnText.innerText = "Ссылка на комнату", 2000);
-        }
-
-        function resetGame() {
-            if (confirm('Сбросить игру и сбросить роли?')) {
-                state.phase = 'LOBBY';
-                state.myRole = null;
-                document.getElementById('viewRoleBtn').classList.add('hidden');
-                document.getElementById('gamePhaseBadge').classList.add('hidden');
-                hideVotingButtons();
-                addLog('Игра была сброшена ведущим.');
-            }
-        }
-
-        function escapeHtml(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            alert('Ссылка скопирована! Отправьте её друзьям.');
         }
     </script>
 </body>
